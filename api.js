@@ -1,19 +1,18 @@
 //packages
 var mongoose = require('mongoose');
+var moment = require('moment');
 var express = require('express');
 var bodyParser = require('body-parser');
 //var config = require('./config/config.js');
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
 
-//modules
+var passport = require('passport');
 var User = require('./model/User.js');
+var LocalStrategy = require('./services/localStrategy.js');
+//modules
+
 var jwt = require('./services/jwt.js');
 var app = express();
-var strategyOption = {
-                        usernameField: 'email',
-                        passwordField: 'password'
-                     };
+
 
 mongoose.Promise = global.Promise;
 
@@ -42,44 +41,9 @@ app.use(function (req, res, next) {
 });
 
 
-//setup passport register strategy
-var registerStrategy = new LocalStrategy(strategyOption, function (userEmail, password, done) {
 
-    var newUser = new User({
-        password: password,
-        email: userEmail
-    });
-    
-    console.log(newUser);
-
-    var promise = newUser.save();
-    done(null, newUser);
-});
-
-
-//setup passport login strategy
-var loginStrategy = new LocalStrategy(strategyOption, function (userEmail, password, done) {
-    var searchUser = {email: userEmail};
-    User.findOne(searchUser, function (err, user) {
-        if (err) return done(err);
-
-        if (!user) {
-            return done(null, false, {message: "User not found or wrong email or password"});
-        }
-
-        user.comparePasswords(password, function (err, isMatch) {
-            if (err) return done(err);
-
-            if (!isMatch) {
-                return done(null, false, {message: "wrong email or password"});
-            }
-            return done(null, user);
-        });
-    });
-});
-
-passport.use('local-register', registerStrategy);
-passport.use('local-login', loginStrategy);
+passport.use('local-register', LocalStrategy.register);
+passport.use('local-login', LocalStrategy.login);
 
 
 app.post('/register', passport.authenticate('local-register'), function (req, res) {
@@ -92,7 +56,8 @@ app.post('/login', passport.authenticate('local-login'), function (req, res) {
 
 function createSendToken(user, res) {
     var payload = {
-        sub: user.id
+        sub: user.id,
+        exp:moment().add(10,'days').unix()
     };
 
     //get the auth token
