@@ -1,10 +1,15 @@
 var mongoose = require('mongoose');
 var bcrypt = require('bcrypt-nodejs');
+var mongoose = require('mongoose');
+
+
 
 var UserSchema = new mongoose.Schema({
-  name: String,
-  password: String,
-  email: String
+    name: String,
+    surname: String,
+    cell: String,
+    email: String,
+    password:String
 });
 
 UserSchema.methods.toJSON = function(){
@@ -12,6 +17,7 @@ UserSchema.methods.toJSON = function(){
   delete user.password;
   return user;
 }
+
 
 UserSchema.methods.comparePasswords = function(passwrd, callback){
     bcrypt.compare(passwrd,this.password,callback);
@@ -32,5 +38,6 @@ UserSchema.pre('save', function(next) {
     });
   });
 });
+
 
 module.exports = mongoose.model('User', UserSchema);

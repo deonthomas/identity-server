@@ -1,83 +1,67 @@
-//packages
-var mongoose = require('mongoose');
 var moment = require('moment');
 var express = require('express');
 var bodyParser = require('body-parser');
-//var config = require('./config/config.js');
-
-var passport = require('passport');
+var mongoose = require('mongoose');
 var User = require('./model/User.js');
-var LocalStrategy = require('./services/localStrategy.js');
-//modules
 
-var jwt = require('./services/jwt.js');
 var app = express();
-
-
-mongoose.Promise = global.Promise;
-
 app.use(bodyParser.json());
-app.use(passport.initialize());
-passport.serializeUser(function (user, done) {
-    done(null, user.id);
-});
-
+mongoose.connect('mongodb://localhost/psjwt');
 
 app.use(function (req, res, next) {
     res.header('Acess-Control-Allow-Origin', '*');
     res.header('Acess-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Acess-Control-Allow-Headers', 'Content-Type, Authorozation');
-
-    if (!req.headers.authorization) {
-        return res.status(401).send({message: "You are not authorized"})
-    }
-
-//    var payload = jwt.decode(req.headers.authorization, "secret");
-//    console.log("payload:" + payload.toString());
-//    if (!payload.sub) {
-//        res.status(401).send({message: "Authentication failed no issuer."});
-//    }
     next();
 });
 
 
-
-passport.use('local-register', LocalStrategy.register);
-passport.use('local-login', LocalStrategy.login);
-
-
-app.post('/register', passport.authenticate('local-register'), function (req, res) {
-    createSendToken(req.user, res);
-});
-
-app.post('/login', passport.authenticate('local-login'), function (req, res) {
-    createSendToken(req.user, res);
-});
-
-function createSendToken(user, res) {
-    var payload = {
-        sub: user.id,
-        exp:moment().add(10,'days').unix()
-    };
-
-    //get the auth token
-    var token = jwt.encode(payload, "secret");
-    res.status(200).send({
-        user: user.toJSON(),
-        token: token
+app.post('/register', function (req, res) {
+    
+    var user = req.body;
+    var newUser = new User.model({
+        name: user.name,
+        surname: user.surname,
+        cell: user.cell,
+        email: user.email,
+        password:user.password
     });
-}
+
+    newUser.save(function(err){
+        res.status(200).json(newUser);
+    });
+});
+
+app.post('/login', function (req, res) {
+    console.log(req.body);
+    res.send("loging");
+});
 
 app.post('/logout', function (req, res) {
+    console.log(req.body);
     res.send("logout");
 });
 
-app.post('/forgot-password', function (req, res) {
-    res.send("forgot-password");
+app.post('/reset-password', function (req, res) {
+    console.log(req.body);
+    res.send("reset password");
 });
 
-mongoose.connect('mongodb://localhost/identityDb');
-
-var server = app.listen(3000, function () {
-    console.log('api listening on ', server.address().port);
+app.post('/verify-email', function (req, res) {
+    console.log(req.body);
+    res.send("verify email");
 });
+
+
+app.get('/test', function (req, res) {
+    console.log(req.body);
+    res.send("test link");
+});
+
+
+var server = app.listen(3000,function(){
+    console.log("Listening on port", server.address().port)
+})
+
+
+
