@@ -4,8 +4,15 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var User = require('./model/User.js');
 
+var jwt = require('jwt-simple');
+var passport = require('passport')
+//var localStrategy = require('passport-local')
+
 var app = express();
+
 app.use(bodyParser.json());
+app.use(passport.initialize());
+
 mongoose.connect('mongodb://localhost/psjwt');
 
 app.use(function (req, res, next) {
@@ -28,18 +35,42 @@ app.post('/register', function (req, res) {
     });
 
     newUser.save(function(err){
-        res.status(200).json(newUser);
+       createToken(newUser, res);
     });
 });
 
 app.post('/login', function (req, res) {
-    console.log(req.body);
-    res.send("loging");
+console.log(req.body);
+ var user = req.body;
+
+ var searchUser = { email: req.user.email};
+    User.findOne({ email:user.email },function(err, user){
+      if(err) throw err;  
+
+      if(!user)
+        return res.status(401).send({message: "Wrong email/password"});
+
+       user.comparePasswords(req.user.password, function(err,isMatch ){
+            if(err) throw err;
+
+            if(!isMatch)
+               return res.status(401).send({message: "Wrong email/password"});
+            
+            createToken(user,res);
+      });
+    });
 });
 
+function createToken(user, res){
+    var payload = {
+        iss:req.hostname,
+        sub: user._id
+    }
+    var token = jwt.encode(payload,"shhh..")
+}
+
 app.post('/logout', function (req, res) {
-    console.log(req.body);
-    res.send("logout");
+   
 });
 
 app.post('/reset-password', function (req, res) {
@@ -61,7 +92,4 @@ app.get('/test', function (req, res) {
 
 var server = app.listen(3000,function(){
     console.log("Listening on port", server.address().port)
-})
-
-
-
+});
